@@ -1,10 +1,6 @@
-import matplotlib.pyplot as plt
-import matplotlib
 import numpy as np
 from numpy import pi, cos, sin
-from random import random as rand
-import scipy
-from scipy.integrate import odeint, solve_ivp
+from scipy.integrate import solve_ivp
 
 g = 9.807
 m1 = 1
