@@ -18,7 +18,11 @@ class Atwood:
 
 
     def derivatives(self,t,y):
-        # Expected input: y = [r, r', o, o']
+        """Expected input:
+        y = [r, r', o, o']
+        t = np array, list of times
+        Not used explicitly required for solve_ivp
+        """
         g = self.g
         m = self.m
         M = self.M
@@ -30,27 +34,9 @@ class Atwood:
         dydt =  np.array(r_derivs + o_derivs) # concat derivs and return array
         return dydt
 
-    # def animate(i):
-    #     lim = 100 # set how amny prevous points will be included in the motion
-    #     ax.clear()
-    #     ax.set(xlim = (-2,2), ylim = (-2,2))
-    #     # Plot the motion of the "main mass"
-    #     if i <= lim:
-    #         ax.plot(x[:i],y[:i])
-    #     else:
-    #         ax.plot(x[i-lim:i],y[i-lim:i])
-    #     ax.plot([0,x[i-1]],[0,y[i-1]],lw=1,c='blue')
-    #     ax.plot(x[i-1],y[i-1],c='blue',marker='o',markersize=3*m)
-    #     # plot the motion of the other mass
-    #     ax.plot(x2[i-1],y2[i-1], marker='o', c='blue',markersize=3*M)
-    #     ax.plot([-1,x2[i-1]],[0,y2[i-1]],lw=1,c='blue')
-    #     # Plot pulleys and connecting rope
-    #     ax.plot(0,0, marker='o',c='black')
-    #     ax.plot(-1,0, marker='o',c='black')
-    #     ax.plot([-1,0],[0,0], c='blue',lw=1)
     
     def solve(self, y0):
-        # y0 = (r,r',o,o')
+        """ y0 : list of floats/ints representing [r,r',o,o']"""
         g = self.g
         m = self.m
         M = self.M
@@ -73,4 +59,9 @@ class Atwood:
         x2 = rs2*cos(os2) # subtract the distance between points
         y2 = rs2*sin(os2)*-1
 
-        return [x,y,x2,y2]
+        # approximate r, r', o, o' to be used for the next set of calculations
+        dt = t_range[-1] - t_range[-2]
+        dr = (rs[-1] - rs[-2])/dt
+        do = (os[-1] - os[-2])/dt
+        last_vals = [rs[-1], dr, os[-1]+pi/2, do] # need to rotate last o back
+        return [x,y,x2,y2], last_vals
