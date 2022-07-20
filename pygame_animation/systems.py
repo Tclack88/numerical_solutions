@@ -1,12 +1,16 @@
 import numpy as np
 from numpy import pi, cos, sin
 from scipy.integrate import solve_ivp
-
+from methods import runga_kutta2, runga_kutta3, runga_kutta4, euler
 # g = 9.807
 # m = 1
 # M = 3
 # L = 1.5 # length of rope
 # d = 1 # distance between pulleys
+names = ('rk2','rk3','rk4','euler')
+sol_functions = (runga_kutta2, runga_kutta3, runga_kutta4, euler)
+sol_methods = dict(zip(names,sol_functions))
+
 
 class Atwood:
     def __init__(self, g, L, m, M, d):
@@ -35,7 +39,7 @@ class Atwood:
         return dydt
 
     
-    def solve(self, y0):
+    def solve(self, y0, method_name):
         """ y0 : list of floats/ints representing [r,r',o,o']"""
         g = self.g
         m = self.m
@@ -45,10 +49,17 @@ class Atwood:
         #y0 = np.array([1, 0, pi/6, 0]) # initial conditions (r, r', o, o')
         t_range = np.linspace(0,10,num=1001)
         
-        sol = solve_ivp(self.derivatives, [t_range[0],t_range[-1]], y0, method='Radau', t_eval=t_range)
-        
-        rs = sol.y[0]
-        os = sol.y[2]
+
+        if method_name == 'true':
+            sol = solve_ivp(self.derivatives, [t_range[0],t_range[-1]], y0, method='Radau', t_eval=t_range)
+            rs = sol.y[0]
+            os = sol.y[2]
+        else:
+            sol_method = sol_methods[method_name]
+            sol = sol_method(self.derivatives, t_range, y0)
+            rs = sol.T[0]
+            os = sol.T[2]
+
         os = os - pi/2 # rotate cw by 90 deg so it's facing "down"
         rs2 = L - rs
         os2 = -pi/2*np.ones(np.shape(rs2))
@@ -97,7 +108,7 @@ class DoublePendulum:
         dydt = np.array(o1_derivs + o2_derivs)
         return dydt
 
-    def solve(self, y0):
+    def solve(self, y0, method_name):
         """ y0 : list of floats/ints representing [o1, o1', o2, o2']"""
         g = self.g
         l1 = self.l1
@@ -106,10 +117,16 @@ class DoublePendulum:
         m2 = self.m2  # mass2
         t_range = np.linspace(0,10,num=1001)
 
-        sol = solve_ivp(self.derivatives, [t_range[0],t_range[-1]], y0, method='Radau', t_eval=t_range)
+        if method_name == 'true':
+            sol = solve_ivp(self.derivatives, [t_range[0],t_range[-1]], y0, method='Radau', t_eval=t_range)
+            o1s = sol.y[0] - pi/2 # rotate CW by 90 deg so it's facing "down"
+            o2s = sol.y[2] - pi/2 # rotate CW by 90 deg so it's facing "down"
+        else:
+            sol_method = sol_methods[method_name]
+            sol = sol_method(self.derivatives, t_range, y0)
 
-        o1s = sol.y[0] - pi/2 # rotate CW by 90 deg so it's facing "down"
-        o2s = sol.y[2] - pi/2 # rotate CW by 90 deg so it's facing "down"
+            o1s = sol.T[0] - pi/2 # rotate CW by 90 deg so it's facing "down"
+            o2s = sol.T[2] - pi/2 # rotate CW by 90 deg so it's facing "down"
         # convert polar to x and y for ease of plotting
         x = l1*cos(o1s)
         y = l1*sin(o1s)*-1

@@ -4,119 +4,7 @@ from random import random as rand
 from numpy import pi, sin, cos
 import pygame
 from pygame.locals import *
-
-class Mass:
-    def __init__(self, location, mass, color=(0,250,0)):
-        """Ball/mass for the weights,
-        location is last known or initial location, tuple (x,y) coordinates
-        mass: float or in.
-        """
-        self.color = color
-        self.location = location
-        self.mass = mass
-
-    def __repr__(self):
-        return f"""Mass:{self.mass}kg located at {self.location}"""
-        
-    def render(self, screen):
-        # Vol = 4/3 pi r^3, and vol proportional to mass
-        self.radius = 5*(3/4*self.mass)**.33
-        pygame.draw.circle(screen, self.color, self.location, self.radius)
-
-    def update(self, location=None, mass=None):
-        if location != None:
-            self.location = location
-        if mass != None:
-            self.mass = mass
-
-class Pulley:
-    def __init__(self, location):
-        """Pulley drawn for visual appeal, no purpose
-        location (tuple) fixed
-        """
-        self.location = location
-        self.radius = 2
-        
-    def render(self, screen):
-        pygame.draw.circle(screen, (200,200,200), self.location, self.radius)
-
-
-class Controller(pygame.Rect):
-    def __init__(self, screen):
-        """contains sliders to change mass, gravity, string length, etc."""
-        
-        self.w = screen.get_width()
-        self.h = screen.get_height()/5
-
-    def render(self, screen):
-        pygame.draw.rect(screen, (100,100,100), (0,0,self.w,self.h))
-
-class Slider:
-    # Shamelessly stolen and modified from stack overflow:
-    # https://stackoverflow.com/questions/65482148/creating-sliders-using-pygame
-    def __init__(self, position:tuple, startingValue:int=1, w:int = 20, h:int = 80,  font_color=(0,255,0), text:str="")->None:
-        self.position = position
-        self.w = w
-        # NOTE: can't figure out how to take the starting height change
-        # It will default to 1, but it's not linear
-        self.h = h
-        self.outlineSize = (self.w,self.h) # original dim. vals change on slide
-        self.upperValue = 10
-        self.startingValue = startingValue
-        self.text = text
-        self.font_color = font_color
-        self.starting = True # set to False after 1st time "changeValue" called
-        self.test = 1
-
-    #returns the current value of the slider
-    def getValue(self)->float:
-        if self.starting:
-            return self.startingValue
-        else:
-            # add 1 to keep mass >= 1 (can't handle 0 mass)
-            return abs(1+self.upperValue - (self.h / (self.outlineSize[1] / self.upperValue)))
-
-    #renders slider and the text showing the value of the slider
-    def render(self, display:pygame.display)->None:
-        #draw outline and slider rectangles
-        pygame.draw.rect(display, (50, 50, 50),
-            (self.position[0], self.position[1], self.outlineSize[0], self.outlineSize[1]), 3)
-
-        pygame.draw.rect(display, (0, 0, 0),
-                (self.position[0], self.position[1] + self.h, self.w , self.outlineSize[1] - self.h))
-
-        #determine size of font
-        self.font = pygame.font.Font(pygame.font.get_default_font(), int(1.5*self.w))
-
-        #create text surface with value
-        valueSurf = self.font.render(f"{self.text}{round(self.getValue())}", True, self.font_color)
-
-        #centre text
-        textx = self.position[0] + (self.outlineSize[0]/2) - (valueSurf.get_rect().width/2)
-        texty = self.position[1] + (self.outlineSize[1]) + .5*(valueSurf.get_rect().height/2)
-
-        display.blit(valueSurf, (textx, texty))
-
-    #allows users to change value of the slider by dragging it.
-    def changeValue(self)->None:
-        #If mouse is pressed and mouse is inside the slider
-        def pointInRectanlge(px, py, rw, rh, rx, ry):
-            if px > rx and px < rx  + rw:
-                if py > ry and py < ry + rh:
-                    return True
-            return False
-        mousePos = pygame.mouse.get_pos()
-        if pointInRectanlge(mousePos[0], mousePos[1], self.outlineSize[0], self.outlineSize[1], self.position[0], self.position[1]):
-            if pygame.mouse.get_pressed()[0]:
-                #the size of the slider
-                self.h = mousePos[1] - self.position[1]
-
-                #limit the size of the slider
-                if self.h < 1:
-                    self.h = 0
-                if self.h > self.outlineSize[1]:
-                    self.h = self.outlineSize[1]
-                self.starting = False
+from utils import Mass, Pulley, Controller, Slider, Checkbox
 
 class Simulation:
     def __init__(self):
@@ -148,6 +36,13 @@ class Simulation:
         v_dist = c_height/4
         self.sliders = [Slider((h_dist,v_dist), 1, h_dist/10, v_dist*2, c1),
                 Slider((2*h_dist,v_dist), 3, h_dist/10, v_dist*2, c2)]
+        # set checkboxes
+        self.checkboxes=[Checkbox(self.screen,h_dist*3,v_dist,'true',caption='"True" solution',checked=True),
+                Checkbox(self.screen,h_dist*3,1.5*v_dist,'euler',caption='euler'),
+                Checkbox(self.screen,h_dist*3,2*v_dist,'rk2',caption='rk2'),
+                Checkbox(self.screen,h_dist*3,2.5*v_dist,'rk3',caption='rk3'),
+                Checkbox(self.screen,h_dist*3,3*v_dist,'rk4',caption='rk4')]
+        self.solution = 'true'
         # Initialize parameters (make editable later)
         self.l1 = 100
         self.l2 = 100
@@ -163,7 +58,9 @@ class Simulation:
         l2 = self.l2
         g = self.g
         double_pendulum = DoublePendulum(g, l1, l2, m1, m2)
-        [x,y,x2,y2],self.last_vals = double_pendulum.solve(self.state)
+        state = self.state
+        name = self.solution # set by checkboxes (euler, rk2, etc)
+        [x,y,x2,y2],self.last_vals = double_pendulum.solve(state, name)
         self.x, self.y, self.x2, self.y2 = x,y,x2,y2
         self.index = 0
 
@@ -173,6 +70,14 @@ class Simulation:
             for event in pygame.event.get():
                 #for slider in self.sliders:
                 #    slider.handle_event(self.screen)
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    for box in self.checkboxes:
+                        box.update_checkbox(event)
+                        if box.checked is True:
+                            self.solution = box.id
+                            for b in self.checkboxes:
+                                if b != box:
+                                    b.checked = False
                 if event.type == pygame.QUIT:
                     self.running = False
             # update
@@ -210,9 +115,11 @@ class Simulation:
             for i,slider in enumerate(self.sliders):
                 slider.render(self.screen)
                 slider.changeValue()
-                # update masses
-                # TODO fix getValue in slider
                 self.masses[i].update(mass=slider.getValue())
+
+            for checkbox in self.checkboxes:
+                checkbox.render()
+
 
         pygame.quit()
 
