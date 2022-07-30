@@ -1,7 +1,7 @@
 # numerical_solutions
 Numerical solutions to differential equations. Animated
 
-![https://github.com/Tclack88/blog/blob/gh-pages/assets/dynamical_systems/dynamic systems.png](https://github.com/Tclack88/blog/blob/gh-pages/assets/dynamical_systems/dynamic systems.png)
+![https://github.com/Tclack88/blog/blob/gh-pages/assets/dynamical_systems/dynamic systems.png](https://github.com/Tclack88/blog/blob/gh-pages/assets/dynamical_systems/dynamic_systems.png)
 
 Read more about the project [on my blog](https://tclack88.github.io/blog/code/2022/07/29/dynamical_system_modeling.html)
 
